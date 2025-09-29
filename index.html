@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reimbursement Form</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        label { display: block; margin-bottom: 10px; }
+        #expensesContainer .expenseRow { margin-bottom: 10px; }
+        hr { margin-top: 5px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Reimbursement Request</h1>
+    
+    <label>First Name: <input type="text" id="firstName"></label>
+    <label>Last Name: <input type="text" id="lastName"></label>
+    <label>Submission Date: <input type="date" id="submissionDate"></label>
+    
+    <h2>Expenses</h2>
+    <div id="expensesContainer"></div>
+    <button type="button" id="addExpenseBtn">Add Expense</button>
+
+    <h2>Receipts</h2>
+    <input type="file" id="receiptFiles" accept="image/*" multiple>
+
+    <br><br>
+    <button type="button" id="generatePdfBtn">Generate PDF</button>
+
+    <!-- jsPDF library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
