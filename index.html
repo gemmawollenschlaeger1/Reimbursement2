@@ -4,21 +4,78 @@
     <meta charset="UTF-8">
     <title>Reimbursement Form</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        label { display: block; margin-bottom: 10px; }
-        #expensesContainer .expenseRow { margin-bottom: 10px; }
-        hr { margin-top: 5px; margin-bottom: 5px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"], input[type="number"], input[type="date"], input[type="file"] {
+            padding: 5px;
+            margin-left: 10px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+
+        /* Expenses Table Styling */
+        #expensesTable {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        #expensesTable th, #expensesTable td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        #expensesTable th {
+            background-color: #f0f0f0;
+        }
+
+        #expensesTable input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 5px;
+        }
+
     </style>
 </head>
 <body>
     <h1>Reimbursement Request</h1>
-    
+
     <label>First Name: <input type="text" id="firstName"></label>
     <label>Last Name: <input type="text" id="lastName"></label>
     <label>Submission Date: <input type="date" id="submissionDate"></label>
-    
+
     <h2>Expenses</h2>
-    <div id="expensesContainer"></div>
+    <table id="expensesTable">
+        <thead>
+            <tr style="background-color:#f0f0f0;">
+                <th>Date</th>
+                <th>Description</th>
+                <th>Amount ($)</th>
+                <th>Mileage (miles)</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="expensesContainer">
+            <!-- Expense rows will be added here -->
+        </tbody>
+    </table>
     <button type="button" id="addExpenseBtn">Add Expense</button>
 
     <h2>Receipts</h2>
