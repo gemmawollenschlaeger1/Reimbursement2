@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const generatePdfBtn = document.getElementById("generatePdfBtn");
     const receiptInput = document.getElementById("receiptFiles");
 
+    // Add a new expense row
     function addExpenseRow() {
         const tr = document.createElement("tr");
         tr.classList.add("expenseRow");
@@ -20,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     addExpenseBtn.addEventListener("click", addExpenseRow);
 
+    // Add receipt images to PDF
     async function addReceiptImages(doc) {
         const files = receiptInput.files;
         if (!files.length) return;
@@ -50,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Generate PDF
     generatePdfBtn.addEventListener("click", async () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -89,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ]);
         });
 
-        // Add table to PDF using autoTable
+        // Add table to PDF
         doc.autoTable({
             startY: 55,
             head: [['Date', 'Description', 'Amount ($)', 'Miles', 'Mileage $']],
@@ -98,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
             headStyles: { fillColor: [240, 240, 240] },
         });
 
-        // Add total after table
+        // Total
         const finalY = doc.lastAutoTable.finalY || 55;
         doc.setFont(undefined, 'bold');
         doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, finalY + 10);
