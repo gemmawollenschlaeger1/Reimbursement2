@@ -2,9 +2,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const expensesContainer = document.getElementById("expensesContainer");
     const addExpenseBtn = document.getElementById("addExpenseBtn");
     const generatePdfBtn = document.getElementById("generatePdfBtn");
+
     const receiptInput = document.getElementById("receiptFiles");
     const uploadReceiptsBtn = document.getElementById("uploadReceiptsBtn");
-    const uploadedReceiptsList = document.getElementById("uploadedReceiptsList");
+    const selectedReceiptsList = document.getElementById("selectedReceiptsList");
+    const uploadStatus = document.getElementById("uploadStatus");
 
     // Array to store uploaded receipts
     let uploadedReceipts = [];
@@ -26,7 +28,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     addExpenseBtn.addEventListener("click", addExpenseRow);
 
-    // Handle receipt uploads
+    // Display selected files before upload
+    receiptInput.addEventListener("change", () => {
+        selectedReceiptsList.innerHTML = "";
+        const files = receiptInput.files;
+        for (let i = 0; i < files.length; i++) {
+            const li = document.createElement("li");
+            li.textContent = files[i].name;
+            selectedReceiptsList.appendChild(li);
+        }
+    });
+
+    // Upload button action
     uploadReceiptsBtn.addEventListener("click", () => {
         const files = receiptInput.files;
         if (!files.length) return;
@@ -34,17 +47,13 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             if (!file.type.startsWith("image/")) continue;
-
             uploadedReceipts.push(file);
-
-            // Display uploaded files
-            const li = document.createElement("li");
-            li.textContent = file.name;
-            uploadedReceiptsList.appendChild(li);
         }
 
-        // Clear file input so user can select more files
         receiptInput.value = "";
+        selectedReceiptsList.innerHTML = "";
+        uploadStatus.textContent = "Successfully uploaded!";
+        setTimeout(() => uploadStatus.textContent = "", 3000);
     });
 
     // Add receipt images to PDF
@@ -89,7 +98,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const safeDate = submissionDate.replace(/[/\\?%*:|"<>]/g, "-");
 
-        // Header
         doc.setFontSize(16);
         doc.text("Reimbursement Request", 105, 20, null, null, "center");
         doc.setFontSize(12);
@@ -125,7 +133,6 @@ document.addEventListener("DOMContentLoaded", () => {
             headStyles: { fillColor: [240, 240, 240] },
         });
 
-        // Total
         const finalY = doc.lastAutoTable.finalY || 55;
         doc.setFont(undefined, 'bold');
         doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, finalY + 10);
