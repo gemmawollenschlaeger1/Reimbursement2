@@ -1,11 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Elements
     const expensesContainer = document.getElementById("expensesContainer");
     const addExpenseBtn = document.getElementById("addExpenseBtn");
     const generatePdfBtn = document.getElementById("generatePdfBtn");
     const receiptInput = document.getElementById("receiptFiles");
 
-    // Add a new expense row as table row
     function addExpenseRow() {
         const tr = document.createElement("tr");
         tr.classList.add("expenseRow");
@@ -22,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     addExpenseBtn.addEventListener("click", addExpenseRow);
 
-    // Add receipts to PDF
     async function addReceiptImages(doc) {
         const files = receiptInput.files;
         if (!files.length) return;
@@ -53,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Generate PDF
     generatePdfBtn.addEventListener("click", async () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -61,28 +57,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const firstName = document.getElementById("firstName").value || "NoName";
         const lastName = document.getElementById("lastName").value || "NoName";
         let submissionDate = document.getElementById("submissionDate").value;
-
         if (!submissionDate) {
-            const today = new Date();
-            submissionDate = today.toISOString().split('T')[0];
+            submissionDate = new Date().toISOString().split('T')[0];
         }
-
         const safeDate = submissionDate.replace(/[/\\?%*:|"<>]/g, "-");
 
         // Header
         doc.setFontSize(16);
         doc.text("Reimbursement Request", 105, 20, null, null, "center");
-
         doc.setFontSize(12);
-        doc.text(`Employee: ${firstName} ${lastName}`, 20, 40);
-        doc.text(`Submission Date: ${submissionDate}`, 20, 50);
+        doc.text(`Employee: ${firstName} ${lastName}`, 20, 35);
+        doc.text(`Submission Date: ${submissionDate}`, 20, 45);
 
-        // Expenses
-        let y = 70;
+        // Prepare table data
+        const rows = [];
         let total = 0;
-        const rows = document.querySelectorAll(".expenseRow");
-
-        rows.forEach((row, i) => {
+        document.querySelectorAll(".expenseRow").forEach(row => {
             const expenseDate = row.querySelector(".expenseDate").value;
             const desc = row.querySelector(".expenseDesc").value;
             const amount = parseFloat(row.querySelector(".expenseAmount").value) || 0;
@@ -90,24 +80,31 @@ document.addEventListener("DOMContentLoaded", () => {
             const mileageAmount = miles * 0.7;
             total += amount + mileageAmount;
 
-            doc.text(`${i + 1}. Date: ${expenseDate}`, 20, y);
-            y += 7;
-            doc.text(`   Description: ${desc}`, 20, y);
-            y += 7;
-            doc.text(`   Amount: $${amount.toFixed(2)}`, 20, y);
-            if (miles) {
-                y += 7;
-                doc.text(`   Mileage: ${miles} miles ($${mileageAmount.toFixed(2)})`, 20, y);
-            }
-            y += 10;
+            rows.push([
+                expenseDate,
+                desc,
+                amount.toFixed(2),
+                miles ? miles.toFixed(1) : "-",
+                mileageAmount ? mileageAmount.toFixed(2) : "-"
+            ]);
         });
 
-        // Total
+        // Add table to PDF using autoTable
+        doc.autoTable({
+            startY: 55,
+            head: [['Date', 'Description', 'Amount ($)', 'Miles', 'Mileage $']],
+            body: rows,
+            theme: 'grid',
+            headStyles: { fillColor: [240, 240, 240] },
+        });
+
+        // Add total after table
+        const finalY = doc.lastAutoTable.finalY || 55;
         doc.setFont(undefined, 'bold');
-        doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, y);
+        doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, finalY + 10);
         doc.setFont(undefined, 'normal');
 
-        // Receipts
+        // Add receipts
         await addReceiptImages(doc);
 
         // Save PDF
