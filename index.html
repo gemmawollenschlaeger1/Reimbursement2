@@ -29,7 +29,6 @@
             cursor: pointer;
         }
 
-        /* Expenses Table Styling */
         #expensesTable {
             border-collapse: collapse;
             width: 100%;
@@ -51,6 +50,11 @@
             box-sizing: border-box;
             padding: 5px;
         }
+
+        #uploadedReceiptsList {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
     </style>
 </head>
 <body>
@@ -71,14 +75,14 @@
                 <th>Action</th>
             </tr>
         </thead>
-        <tbody id="expensesContainer">
-            <!-- Expense rows go here -->
-        </tbody>
+        <tbody id="expensesContainer"></tbody>
     </table>
     <button type="button" id="addExpenseBtn">Add Expense</button>
 
     <h2>Receipts</h2>
     <input type="file" id="receiptFiles" accept="image/*" multiple>
+    <button type="button" id="uploadReceiptsBtn">Upload Receipts</button>
+    <ul id="uploadedReceiptsList"></ul>
 
     <br><br>
     <button type="button" id="generatePdfBtn">Generate PDF</button>
