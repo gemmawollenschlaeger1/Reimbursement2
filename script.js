@@ -3,6 +3,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const addExpenseBtn = document.getElementById("addExpenseBtn");
     const generatePdfBtn = document.getElementById("generatePdfBtn");
     const receiptInput = document.getElementById("receiptFiles");
+    const uploadReceiptsBtn = document.getElementById("uploadReceiptsBtn");
+    const uploadedReceiptsList = document.getElementById("uploadedReceiptsList");
+
+    // Array to store uploaded receipts
+    let uploadedReceipts = [];
 
     // Add a new expense row
     function addExpenseRow() {
@@ -21,14 +26,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
     addExpenseBtn.addEventListener("click", addExpenseRow);
 
-    // Add receipt images to PDF
-    async function addReceiptImages(doc) {
+    // Handle receipt uploads
+    uploadReceiptsBtn.addEventListener("click", () => {
         const files = receiptInput.files;
         if (!files.length) return;
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             if (!file.type.startsWith("image/")) continue;
+
+            uploadedReceipts.push(file);
+
+            // Display uploaded files
+            const li = document.createElement("li");
+            li.textContent = file.name;
+            uploadedReceiptsList.appendChild(li);
+        }
+
+        // Clear file input so user can select more files
+        receiptInput.value = "";
+    });
+
+    // Add receipt images to PDF
+    async function addReceiptImages(doc) {
+        if (!uploadedReceipts.length) return;
+
+        for (let i = 0; i < uploadedReceipts.length; i++) {
+            const file = uploadedReceipts[i];
 
             const imgData = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -107,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, finalY + 10);
         doc.setFont(undefined, 'normal');
 
-        // Add receipts
+        // Add uploaded receipts
         await addReceiptImages(doc);
 
         // Save PDF
