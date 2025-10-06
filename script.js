@@ -83,7 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
     generatePdfBtn.addEventListener("click", async () => {
         const { jsPDF } = window.jspdf;
 
-        // 1️⃣ Create jsPDF form
         let doc = new jsPDF();
 
         const firstName = document.getElementById("firstName").value || "NoName";
@@ -132,10 +131,10 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, finalY + 10);
         doc.setFont(undefined, 'normal');
 
-        // 2️⃣ Add image receipts
+        // Image receipts
         await addImageReceiptsToPDF(doc);
 
-        // 3️⃣ Merge PDF receipts
+        // Merge PDF receipts
         const mergedPdf = await PDFLib.PDFDocument.create();
         const mainPdfBytes = await doc.output("arraybuffer");
         const mainPdfDoc = await PDFLib.PDFDocument.load(mainPdfBytes);
