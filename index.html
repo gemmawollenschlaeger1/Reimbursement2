@@ -4,87 +4,18 @@
     <meta charset="UTF-8">
     <title>Reimbursement Form</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-        }
-
-        h1, h2 {
-            color: #333;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 10px;
-        }
-
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1, h2 { color: #333; }
+        label { display: block; margin-bottom: 10px; }
         input[type="text"], input[type="number"], input[type="date"], input[type="file"] {
             padding: 5px;
             margin-left: 10px;
         }
-
-        button {
-            margin-top: 10px;
-            padding: 10px 15px;
-            cursor: pointer;
-        }
-
-        #expensesTable {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 15px;
-        }
-
-        #expensesTable th, #expensesTable td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-        }
-
-        #expensesTable th {
-            background-color: #f0f0f0;
-        }
-
-        #expensesTable input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 5px;
-        }
-
-        #selectedReceiptsList {
-            list-style-type: none;
-            padding-left: 0;
-        }
-
-        #selectedReceiptsList li {
-            margin-bottom: 5px;
-            background: #f9f9f9;
-            border: 1px solid #ccc;
-            padding: 8px;
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .uploadedTag {
-            color: green;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-
-        .removeBtn {
-            background-color: #d9534f;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            cursor: pointer;
-        }
-
-        .removeBtn:hover {
-            background-color: #c9302c;
-        }
+        button { margin-top: 10px; padding: 10px 15px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 5px; text-align: left; }
+        #selectedReceiptsList li { margin-bottom: 5px; }
+        .uploadedTag { margin-left: 10px; color: green; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -95,13 +26,13 @@
     <label>Submission Date: <input type="date" id="submissionDate"></label>
 
     <h2>Expenses</h2>
-    <table id="expensesTable">
+    <table>
         <thead>
             <tr>
                 <th>Date</th>
                 <th>Description</th>
                 <th>Amount ($)</th>
-                <th>Mileage (miles)</th>
+                <th>Miles</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -110,17 +41,19 @@
     <button type="button" id="addExpenseBtn">Add Expense</button>
 
     <h2>Receipts</h2>
-    <input type="file" id="receiptFiles" accept="image/*" multiple>
-    <button type="button" id="uploadReceiptsBtn">Upload Receipts</button>
+    <input type="file" id="receiptFiles" accept="image/*,application/pdf" multiple>
+    <button type="button" id="uploadReceiptsBtn">Upload Selected Files</button>
     <ul id="selectedReceiptsList"></ul>
 
-    <br><br>
+    <br>
     <button type="button" id="generatePdfBtn">Generate PDF</button>
 
-    <!-- jsPDF and autoTable libraries -->
+    <!-- jsPDF library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF-AutoTable plugin -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <!-- pdf-lib for merging PDF receipts -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
-
