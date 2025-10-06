@@ -6,12 +6,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const receiptInput = document.getElementById("receiptFiles");
     const uploadReceiptsBtn = document.getElementById("uploadReceiptsBtn");
     const selectedReceiptsList = document.getElementById("selectedReceiptsList");
-    const uploadStatus = document.getElementById("uploadStatus");
 
-    // Array to store uploaded receipts
+    // Store uploaded receipts
     let uploadedReceipts = [];
 
-    // Add a new expense row
+    // Add new expense row
     function addExpenseRow() {
         const tr = document.createElement("tr");
         tr.classList.add("expenseRow");
@@ -28,18 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     addExpenseBtn.addEventListener("click", addExpenseRow);
 
-    // Display selected files before upload
-    receiptInput.addEventListener("change", () => {
-        selectedReceiptsList.innerHTML = "";
-        const files = receiptInput.files;
-        for (let i = 0; i < files.length; i++) {
-            const li = document.createElement("li");
-            li.textContent = files[i].name;
-            selectedReceiptsList.appendChild(li);
-        }
-    });
-
-    // Upload button action
+    // Upload receipts and list them
     uploadReceiptsBtn.addEventListener("click", () => {
         const files = receiptInput.files;
         if (!files.length) return;
@@ -47,22 +35,35 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             if (!file.type.startsWith("image/")) continue;
+
             uploadedReceipts.push(file);
+            const li = document.createElement("li");
+
+            li.innerHTML = `
+                <span>${file.name}</span>
+                <span class="uploadedTag">✅ Uploaded</span>
+                <button type="button" class="removeBtn">Remove</button>
+            `;
+
+            // Remove button action
+            li.querySelector(".removeBtn").addEventListener("click", () => {
+                uploadedReceipts = uploadedReceipts.filter(f => f !== file);
+                li.remove();
+            });
+
+            selectedReceiptsList.appendChild(li);
         }
 
+        // Clear file input so more can be uploaded later
         receiptInput.value = "";
-        selectedReceiptsList.innerHTML = "";
-        uploadStatus.textContent = "Successfully uploaded!";
-        setTimeout(() => uploadStatus.textContent = "", 3000);
     });
 
-    // Add receipt images to PDF
+    // Add uploaded receipt images to PDF
     async function addReceiptImages(doc) {
         if (!uploadedReceipts.length) return;
 
         for (let i = 0; i < uploadedReceipts.length; i++) {
             const file = uploadedReceipts[i];
-
             const imgData = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = e => resolve(e.target.result);
@@ -80,7 +81,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const pdfWidth = pageWidth - margin * 2;
             const pdfHeight = (img.height * pdfWidth) / img.width;
-
             doc.addImage(imgData, 'JPEG', margin, margin, pdfWidth, pdfHeight);
         }
     }
@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.text(`Employee: ${firstName} ${lastName}`, 20, 35);
         doc.text(`Submission Date: ${submissionDate}`, 20, 45);
 
-        // Prepare table data
+        // Collect expense rows
         const rows = [];
         let total = 0;
         document.querySelectorAll(".expenseRow").forEach(row => {
@@ -124,13 +124,14 @@ document.addEventListener("DOMContentLoaded", () => {
             ]);
         });
 
-        // Add table to PDF
+        // Add table with black text
         doc.autoTable({
             startY: 55,
             head: [['Date', 'Description', 'Amount ($)', 'Miles', 'Mileage $']],
             body: rows,
             theme: 'grid',
-            headStyles: { fillColor: [240, 240, 240] },
+            headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
+            bodyStyles: { textColor: [0, 0, 0] }
         });
 
         const finalY = doc.lastAutoTable.finalY || 55;
@@ -138,10 +139,8 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, finalY + 10);
         doc.setFont(undefined, 'normal');
 
-        // Add uploaded receipts
         await addReceiptImages(doc);
 
-        // Save PDF
         doc.save(`${safeDate}_Reimbursement_${firstName}_${lastName}.pdf`);
     });
 });
