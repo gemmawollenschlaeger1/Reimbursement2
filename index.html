@@ -4,18 +4,58 @@
     <meta charset="UTF-8">
     <title>Reimbursement Form</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        h1, h2 { color: #333; }
-        label { display: block; margin-bottom: 10px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
         input[type="text"], input[type="number"], input[type="date"], input[type="file"] {
             padding: 5px;
             margin-left: 10px;
         }
-        button { margin-top: 10px; padding: 10px 15px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ccc; padding: 5px; text-align: left; }
-        #selectedReceiptsList li { margin-bottom: 5px; }
-        .uploadedTag { margin-left: 10px; color: green; font-weight: bold; }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        table, th, td {
+            border: 1px solid #999;
+        }
+
+        th, td {
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+
+        #selectedReceiptsList li {
+            margin-bottom: 5px;
+        }
+
+        .uploadedTag {
+            color: green;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -26,17 +66,14 @@
     <label>Submission Date: <input type="date" id="submissionDate"></label>
 
     <h2>Expenses</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Amount ($)</th>
-                <th>Miles</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="expensesContainer"></tbody>
+    <table id="expensesContainer">
+        <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount ($)</th>
+            <th>Mileage (if applicable)</th>
+            <th>Action</th>
+        </tr>
     </table>
     <button type="button" id="addExpenseBtn">Add Expense</button>
 
@@ -48,12 +85,13 @@
     <br>
     <button type="button" id="generatePdfBtn">Generate PDF</button>
 
-    <!-- jsPDF library -->
+    <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- jsPDF-AutoTable plugin -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <!-- pdf-lib for merging PDF receipts -->
-    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- pdf-lib -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.20.0/pdf-lib.min.js"></script>
+
     <script src="script.js"></script>
 </body>
 </html>
