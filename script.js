@@ -16,6 +16,7 @@ function addExpenseRow() {
         <td><input type="date" class="expenseDate" required></td>
         <td><input type="text" class="expenseDesc" required></td>
         <td><input type="number" class="expenseAmount" step="0.01" required></td>
+        <td><input type="number" class="expenseMiles" step="0.1"></td>
         <td><button type="button" class="removeExpenseBtn">Remove</button></td>
     `;
     expensesContainer.appendChild(tr);
@@ -85,7 +86,7 @@ async function addReceiptImages(doc) {
             const existingPdfBytes = await file.arrayBuffer();
             const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
             const pdfBytes = await pdfDoc.save();
-            // Currently cannot merge with jsPDF directly; would need advanced merging
+            // Currently cannot merge with jsPDF directly; images will work
         }
     }
 }
@@ -110,16 +111,20 @@ generatePdfBtn.addEventListener("click", async () => {
     const tableData = [];
 
     rows.forEach(row => {
-        const date = row.querySelector(".expenseDate").value;
-        const desc = row.querySelector(".expenseDesc").value;
-        const amount = parseFloat(row.querySelector(".expenseAmount").value) || 0;
-        total += amount;
-        tableData.push([date, desc, amount.toFixed(2)]);
+        const dateVal = row.querySelector(".expenseDate").value;
+        const descVal = row.querySelector(".expenseDesc").value;
+        const amountVal = parseFloat(row.querySelector(".expenseAmount").value) || 0;
+        const milesVal = parseFloat(row.querySelector(".expenseMiles")?.value) || 0;
+        const mileageAmount = milesVal * 0.7;
+        const totalAmount = amountVal + mileageAmount;
+        total += totalAmount;
+
+        tableData.push([dateVal, descVal, totalAmount.toFixed(2), milesVal ? milesVal.toFixed(1) : "-"]);
     });
 
     doc.autoTable({
         startY: 70,
-        head: [['Date', 'Description', 'Amount ($)']],
+        head: [['Date', 'Description', 'Amount + Mileage ($)', 'Miles']],
         body: tableData,
         styles: { halign: 'left' },
         headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255] },
@@ -132,4 +137,3 @@ generatePdfBtn.addEventListener("click", async () => {
 
     doc.save(`${date}_Reimbursement_${firstName}_${lastName}.pdf`);
 });
-
