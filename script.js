@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const uploadReceiptsBtn = document.getElementById("uploadReceiptsBtn");
     const selectedReceiptsList = document.getElementById("selectedReceiptsList");
 
-    // Store uploaded receipts
     let uploadedReceipts = [];
 
     // Add a new expense row
@@ -51,17 +50,13 @@ document.addEventListener("DOMContentLoaded", () => {
             selectedReceiptsList.appendChild(li);
         }
 
-        // Clear input
         receiptInput.value = "";
     });
 
-    // Add receipts to PDF (images and PDFs)
-    async function addReceiptImagesAndPDFs(doc) {
-        for (let i = 0; i < uploadedReceipts.length; i++) {
-            const file = uploadedReceipts[i];
-
+    // Add images to jsPDF
+    async function addImageReceiptsToPDF(doc) {
+        for (let file of uploadedReceipts) {
             if (file.type.startsWith("image/")) {
-                // Image
                 const imgData = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = e => resolve(e.target.result);
@@ -80,46 +75,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 const pdfWidth = pageWidth - margin * 2;
                 const pdfHeight = (img.height * pdfWidth) / img.width;
                 doc.addImage(imgData, 'JPEG', margin, margin, pdfWidth, pdfHeight);
-
-            } else if (file.type === "application/pdf") {
-                // PDF
-                const arrayBuffer = await file.arrayBuffer();
-                const pdfBytes = new Uint8Array(arrayBuffer);
-
-                const existingPdfBytes = doc.output('arraybuffer');
-                const mergedPdf = await PDFLib.PDFDocument.create();
-                const srcPdf = await PDFLib.PDFDocument.load(existingPdfBytes);
-                const receiptPdf = await PDFLib.PDFDocument.load(pdfBytes);
-
-                // Copy existing pages
-                const srcPages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
-                srcPages.forEach(p => mergedPdf.addPage(p));
-
-                // Copy receipt pages
-                const receiptPages = await mergedPdf.copyPages(receiptPdf, receiptPdf.getPageIndices());
-                receiptPages.forEach(p => mergedPdf.addPage(p));
-
-                // Save merged back to doc
-                const mergedBytes = await mergedPdf.save();
-                doc = new jsPDF({ compress: true });
-                doc.loadFile(new Uint8Array(mergedBytes));
             }
         }
-
-        return doc;
     }
 
     // Generate PDF
     generatePdfBtn.addEventListener("click", async () => {
         const { jsPDF } = window.jspdf;
+
+        // 1️⃣ Create jsPDF form
         let doc = new jsPDF();
 
         const firstName = document.getElementById("firstName").value || "NoName";
         const lastName = document.getElementById("lastName").value || "NoName";
         let submissionDate = document.getElementById("submissionDate").value;
-        if (!submissionDate) {
-            submissionDate = new Date().toISOString().split('T')[0];
-        }
+        if (!submissionDate) submissionDate = new Date().toISOString().split('T')[0];
         const safeDate = submissionDate.replace(/[/\\?%*:|"<>]/g, "-");
 
         doc.setFontSize(16);
@@ -128,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.text(`Employee: ${firstName} ${lastName}`, 20, 35);
         doc.text(`Submission Date: ${submissionDate}`, 20, 45);
 
-        // Collect expenses
+        // Expenses table
         const rows = [];
         let total = 0;
         document.querySelectorAll(".expenseRow").forEach(row => {
@@ -148,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
             ]);
         });
 
-        // Generate expense table
         doc.autoTable({
             startY: 55,
             head: [['Date', 'Description', 'Amount ($)', 'Miles', 'Mileage $']],
@@ -163,8 +132,32 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, finalY + 10);
         doc.setFont(undefined, 'normal');
 
-        doc = await addReceiptImagesAndPDFs(doc);
+        // 2️⃣ Add image receipts
+        await addImageReceiptsToPDF(doc);
 
-        doc.save(`${safeDate}_Reimbursement_${firstName}_${lastName}.pdf`);
+        // 3️⃣ Merge PDF receipts
+        const mergedPdf = await PDFLib.PDFDocument.create();
+        const mainPdfBytes = await doc.output("arraybuffer");
+        const mainPdfDoc = await PDFLib.PDFDocument.load(mainPdfBytes);
+        const mainPages = await mergedPdf.copyPages(mainPdfDoc, mainPdfDoc.getPageIndices());
+        mainPages.forEach(p => mergedPdf.addPage(p));
+
+        for (let file of uploadedReceipts) {
+            if (file.type === "application/pdf") {
+                const arrayBuffer = await file.arrayBuffer();
+                const receiptPdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                const receiptPages = await mergedPdf.copyPages(receiptPdf, receiptPdf.getPageIndices());
+                receiptPages.forEach(p => mergedPdf.addPage(p));
+            }
+        }
+
+        const mergedBytes = await mergedPdf.save();
+        const blob = new Blob([mergedBytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${safeDate}_Reimbursement_${firstName}_${lastName}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
     });
 });
