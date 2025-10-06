@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Store uploaded receipts
     let uploadedReceipts = [];
 
-    // Add new expense row
+    // Add a new expense row
     function addExpenseRow() {
         const tr = document.createElement("tr");
         tr.classList.add("expenseRow");
@@ -27,25 +27,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     addExpenseBtn.addEventListener("click", addExpenseRow);
 
-    // Upload receipts and list them
+    // Upload receipts
     uploadReceiptsBtn.addEventListener("click", () => {
         const files = receiptInput.files;
         if (!files.length) return;
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            if (!file.type.startsWith("image/")) continue;
 
             uploadedReceipts.push(file);
-            const li = document.createElement("li");
 
+            const li = document.createElement("li");
             li.innerHTML = `
                 <span>${file.name}</span>
                 <span class="uploadedTag">✅ Uploaded</span>
                 <button type="button" class="removeBtn">Remove</button>
             `;
-
-            // Remove button action
             li.querySelector(".removeBtn").addEventListener("click", () => {
                 uploadedReceipts = uploadedReceipts.filter(f => f !== file);
                 li.remove();
@@ -54,41 +51,68 @@ document.addEventListener("DOMContentLoaded", () => {
             selectedReceiptsList.appendChild(li);
         }
 
-        // Clear file input so more can be uploaded later
+        // Clear input
         receiptInput.value = "";
     });
 
-    // Add uploaded receipt images to PDF
-    async function addReceiptImages(doc) {
-        if (!uploadedReceipts.length) return;
-
+    // Add receipts to PDF (images and PDFs)
+    async function addReceiptImagesAndPDFs(doc) {
         for (let i = 0; i < uploadedReceipts.length; i++) {
             const file = uploadedReceipts[i];
-            const imgData = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = e => reject(e);
-                reader.readAsDataURL(file);
-            });
 
-            doc.addPage();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const margin = 20;
+            if (file.type.startsWith("image/")) {
+                // Image
+                const imgData = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = e => reject(e);
+                    reader.readAsDataURL(file);
+                });
 
-            const img = new Image();
-            img.src = imgData;
-            await new Promise(resolve => { img.onload = resolve; });
+                doc.addPage();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const margin = 20;
 
-            const pdfWidth = pageWidth - margin * 2;
-            const pdfHeight = (img.height * pdfWidth) / img.width;
-            doc.addImage(imgData, 'JPEG', margin, margin, pdfWidth, pdfHeight);
+                const img = new Image();
+                img.src = imgData;
+                await new Promise(resolve => { img.onload = resolve; });
+
+                const pdfWidth = pageWidth - margin * 2;
+                const pdfHeight = (img.height * pdfWidth) / img.width;
+                doc.addImage(imgData, 'JPEG', margin, margin, pdfWidth, pdfHeight);
+
+            } else if (file.type === "application/pdf") {
+                // PDF
+                const arrayBuffer = await file.arrayBuffer();
+                const pdfBytes = new Uint8Array(arrayBuffer);
+
+                const existingPdfBytes = doc.output('arraybuffer');
+                const mergedPdf = await PDFLib.PDFDocument.create();
+                const srcPdf = await PDFLib.PDFDocument.load(existingPdfBytes);
+                const receiptPdf = await PDFLib.PDFDocument.load(pdfBytes);
+
+                // Copy existing pages
+                const srcPages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
+                srcPages.forEach(p => mergedPdf.addPage(p));
+
+                // Copy receipt pages
+                const receiptPages = await mergedPdf.copyPages(receiptPdf, receiptPdf.getPageIndices());
+                receiptPages.forEach(p => mergedPdf.addPage(p));
+
+                // Save merged back to doc
+                const mergedBytes = await mergedPdf.save();
+                doc = new jsPDF({ compress: true });
+                doc.loadFile(new Uint8Array(mergedBytes));
+            }
         }
+
+        return doc;
     }
 
     // Generate PDF
     generatePdfBtn.addEventListener("click", async () => {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        let doc = new jsPDF();
 
         const firstName = document.getElementById("firstName").value || "NoName";
         const lastName = document.getElementById("lastName").value || "NoName";
@@ -104,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.text(`Employee: ${firstName} ${lastName}`, 20, 35);
         doc.text(`Submission Date: ${submissionDate}`, 20, 45);
 
-        // Collect expense rows
+        // Collect expenses
         const rows = [];
         let total = 0;
         document.querySelectorAll(".expenseRow").forEach(row => {
@@ -124,14 +148,14 @@ document.addEventListener("DOMContentLoaded", () => {
             ]);
         });
 
-        // Add table with black text
+        // Generate expense table
         doc.autoTable({
             startY: 55,
             head: [['Date', 'Description', 'Amount ($)', 'Miles', 'Mileage $']],
             body: rows,
             theme: 'grid',
-            headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
-            bodyStyles: { textColor: [0, 0, 0] }
+            headStyles: { fillColor: [240, 240, 240], textColor: [0,0,0] },
+            bodyStyles: { textColor: [0,0,0] }
         });
 
         const finalY = doc.lastAutoTable.finalY || 55;
@@ -139,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, finalY + 10);
         doc.setFont(undefined, 'normal');
 
-        await addReceiptImages(doc);
+        doc = await addReceiptImagesAndPDFs(doc);
 
         doc.save(`${safeDate}_Reimbursement_${firstName}_${lastName}.pdf`);
     });
