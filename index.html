@@ -52,13 +52,38 @@
         }
 
         #selectedReceiptsList {
-            list-style-type: disc;
-            padding-left: 20px;
+            list-style-type: none;
+            padding-left: 0;
         }
 
-        #uploadStatus {
+        #selectedReceiptsList li {
+            margin-bottom: 5px;
+            background: #f9f9f9;
+            border: 1px solid #ccc;
+            padding: 8px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .uploadedTag {
             color: green;
-            margin-top: 5px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .removeBtn {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+
+        .removeBtn:hover {
+            background-color: #c9302c;
         }
     </style>
 </head>
@@ -88,7 +113,6 @@
     <input type="file" id="receiptFiles" accept="image/*" multiple>
     <button type="button" id="uploadReceiptsBtn">Upload Receipts</button>
     <ul id="selectedReceiptsList"></ul>
-    <p id="uploadStatus"></p>
 
     <br><br>
     <button type="button" id="generatePdfBtn">Generate PDF</button>
@@ -99,3 +123,4 @@
     <script src="script.js"></script>
 </body>
 </html>
+
