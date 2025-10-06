@@ -33,7 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-
             uploadedReceipts.push(file);
 
             const li = document.createElement("li");
@@ -53,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
         receiptInput.value = "";
     });
 
-    // Add images to jsPDF
+    // Add image receipts to jsPDF
     async function addImageReceiptsToPDF(doc) {
         for (let file of uploadedReceipts) {
             if (file.type.startsWith("image/")) {
@@ -83,21 +82,21 @@ document.addEventListener("DOMContentLoaded", () => {
     generatePdfBtn.addEventListener("click", async () => {
         const { jsPDF } = window.jspdf;
 
-        let doc = new jsPDF();
-
         const firstName = document.getElementById("firstName").value || "NoName";
         const lastName = document.getElementById("lastName").value || "NoName";
         let submissionDate = document.getElementById("submissionDate").value;
         if (!submissionDate) submissionDate = new Date().toISOString().split('T')[0];
         const safeDate = submissionDate.replace(/[/\\?%*:|"<>]/g, "-");
 
+        // --- Create jsPDF for form + image receipts ---
+        let doc = new jsPDF();
         doc.setFontSize(16);
         doc.text("Reimbursement Request", 105, 20, null, null, "center");
         doc.setFontSize(12);
         doc.text(`Employee: ${firstName} ${lastName}`, 20, 35);
         doc.text(`Submission Date: ${submissionDate}`, 20, 45);
 
-        // Expenses table
+        // Collect expense data
         const rows = [];
         let total = 0;
         document.querySelectorAll(".expenseRow").forEach(row => {
@@ -117,6 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ]);
         });
 
+        // Generate table
         doc.autoTable({
             startY: 55,
             head: [['Date', 'Description', 'Amount ($)', 'Miles', 'Mileage $']],
@@ -131,32 +131,34 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, finalY + 10);
         doc.setFont(undefined, 'normal');
 
-        // Image receipts
+        // Add image receipts
         await addImageReceiptsToPDF(doc);
 
         // Merge PDF receipts
-        const mergedPdf = await PDFLib.PDFDocument.create();
-        const mainPdfBytes = await doc.output("arraybuffer");
-        const mainPdfDoc = await PDFLib.PDFDocument.load(mainPdfBytes);
-        const mainPages = await mergedPdf.copyPages(mainPdfDoc, mainPdfDoc.getPageIndices());
-        mainPages.forEach(p => mergedPdf.addPage(p));
+        const pdfFiles = uploadedReceipts.filter(f => f.type === "application/pdf");
+        if (pdfFiles.length > 0) {
+            const mergedPdf = await PDFLib.PDFDocument.create();
+            const mainPdfBytes = await doc.output("arraybuffer");
+            const mainPdfDoc = await PDFLib.PDFDocument.load(mainPdfBytes);
+            const mainPages = await mergedPdf.copyPages(mainPdfDoc, mainPdfDoc.getPageIndices());
+            mainPages.forEach(p => mergedPdf.addPage(p));
 
-        for (let file of uploadedReceipts) {
-            if (file.type === "application/pdf") {
+            for (let file of pdfFiles) {
                 const arrayBuffer = await file.arrayBuffer();
-                const receiptPdf = await PDFLib.PDFDocument.load(arrayBuffer);
-                const receiptPages = await mergedPdf.copyPages(receiptPdf, receiptPdf.getPageIndices());
-                receiptPages.forEach(p => mergedPdf.addPage(p));
+                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                pages.forEach(p => mergedPdf.addPage(p));
             }
-        }
 
-        const mergedBytes = await mergedPdf.save();
-        const blob = new Blob([mergedBytes], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${safeDate}_Reimbursement_${firstName}_${lastName}.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
+            const mergedBytes = await mergedPdf.save();
+            const blob = new Blob([mergedBytes], { type: "application/pdf" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `${safeDate}_Reimbursement_${firstName}_${lastName}.pdf`;
+            link.click();
+        } else {
+            // No PDF receipts, just save jsPDF
+            doc.save(`${safeDate}_Reimbursement_${firstName}_${lastName}.pdf`);
+        }
     });
 });
