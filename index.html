@@ -40,33 +40,12 @@
             transition: 0.2s;
         }
 
-        button:hover {
-            opacity: 0.9;
-        }
+        button:hover { opacity: 0.9; }
 
-        #addExpenseBtn {
-            background-color: #3498db;
-            color: white;
-            margin-bottom: 20px;
-        }
-
-        .removeExpenseBtn, .removeBtn {
-            background-color: #e74c3c;
-            color: white;
-            cursor: pointer;
-        }
-
-        #uploadReceiptsBtn {
-            background-color: #27ae60;
-            color: white;
-            margin-left: 10px;
-        }
-
-        #generatePdfBtn {
-            background-color: #8e44ad;
-            color: white;
-            margin-top: 20px;
-        }
+        #addExpenseBtn { background-color: #3498db; color: white; margin-bottom: 20px; }
+        .removeExpenseBtn, .removeBtn { background-color: #e74c3c; color: white; cursor: pointer; }
+        #uploadReceiptsBtn { background-color: #27ae60; color: white; margin-left: 10px; }
+        #generatePdfBtn { background-color: #8e44ad; color: white; margin-top: 20px; }
 
         table {
             width: 100%;
@@ -87,13 +66,8 @@
             font-weight: 600;
         }
 
-        tbody tr:nth-child(even) {
-            background-color: #ecf0f1;
-        }
-
-        tbody tr:hover {
-            background-color: #d6eaf8;
-        }
+        tbody tr:nth-child(even) { background-color: #ecf0f1; }
+        tbody tr:hover { background-color: #d6eaf8; }
 
         #selectedReceiptsList li {
             margin-bottom: 5px;
@@ -111,7 +85,6 @@
             font-weight: bold;
             margin-left: 10px;
         }
-
     </style>
 </head>
 <body>
@@ -134,7 +107,8 @@
             <tr>
                 <th>Date</th>
                 <th>Description</th>
-                <th>Amount ($)</th>
+                <th>Amount + Mileage ($)</th>
+                <th>Miles (optional)</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -153,7 +127,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
-
     <script src="script.js"></script>
+
 </body>
 </html>
+
