@@ -6,33 +6,21 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            max-width: 800px;
+            margin: 40px;
         }
 
         h1, h2 {
             color: #333;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-        }
-
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f2f2f2;
+        label {
+            display: block;
+            margin-bottom: 10px;
         }
 
         input[type="text"], input[type="number"], input[type="date"], input[type="file"] {
             padding: 5px;
-            width: 90%;
+            margin-left: 10px;
         }
 
         button {
@@ -41,45 +29,31 @@
             cursor: pointer;
         }
 
-        #receiptList li {
-            margin-bottom: 5px;
+        .expenseRow {
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
+    <h1>Reimbursement Request</h1>
 
-<h1>Reimbursement Request</h1>
+    <label>First Name: <input type="text" id="firstName"></label>
+    <label>Last Name: <input type="text" id="lastName"></label>
+    <label>Date: <input type="date" id="submissionDate"></label>
+    
+    <h2>Expenses</h2>
+    <div id="expensesContainer"></div>
+    <button type="button" id="addExpenseBtn">Add Expense</button>
 
-<label>First Name: <input type="text" id="firstName"></label>
-<label>Last Name: <input type="text" id="lastName"></label>
-<label>Date: <input type="date" id="submissionDate"></label>
+    <h2>Receipts</h2>
+    <input type="file" id="receiptFiles" accept="image/*,application/pdf" multiple>
 
-<h2>Expenses</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Date</th>
-            <th>Description</th>
-            <th>Amount ($)</th>
-            <th>Miles</th>
-            <th>Remove</th>
-        </tr>
-    </thead>
-    <tbody id="expensesContainer"></tbody>
-</table>
-<button type="button" id="addExpenseBtn">Add Expense</button>
+    <br><br>
+    <button type="button" id="generatePdfBtn">Generate PDF</button>
 
-<h2>Receipts</h2>
-<input type="file" id="receiptFiles" accept="image/*,application/pdf" multiple>
-<button type="button" id="uploadReceiptsBtn">Upload Selected Receipts</button>
-<ul id="receiptList"></ul>
-
-<br>
-<button type="button" id="generatePdfBtn">Generate PDF</button>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
-<script src="script.js"></script>
-
+    <!-- jsPDF + PDFLib -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
