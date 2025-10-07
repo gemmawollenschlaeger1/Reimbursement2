@@ -3,8 +3,12 @@ const expensesContainer = document.getElementById("expensesContainer");
 const addExpenseBtn = document.getElementById("addExpenseBtn");
 const generatePdfBtn = document.getElementById("generatePdfBtn");
 const receiptInput = document.getElementById("receiptFiles");
+const uploadReceiptsBtn = document.getElementById("uploadReceiptsBtn");
+const receiptList = document.getElementById("receiptList");
 
-// Add a new expense row
+let uploadedReceipts = [];
+
+// Add expense row
 function addExpenseRow() {
     const tr = document.createElement("tr");
     tr.classList.add("expenseRow");
@@ -21,6 +25,25 @@ function addExpenseRow() {
 
 addExpenseBtn.addEventListener("click", addExpenseRow);
 
+// Upload receipts to list
+uploadReceiptsBtn.addEventListener("click", () => {
+    const files = Array.from(receiptInput.files);
+    files.forEach(file => {
+        uploadedReceipts.push(file);
+        const li = document.createElement("li");
+        li.textContent = file.name + " ";
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "Remove";
+        removeBtn.addEventListener("click", () => {
+            uploadedReceipts = uploadedReceipts.filter(f => f !== file);
+            li.remove();
+        });
+        li.appendChild(removeBtn);
+        receiptList.appendChild(li);
+    });
+    receiptInput.value = "";
+});
+
 // Convert image to PDF page using pdf-lib
 async function imageToPdfPage(imgFile) {
     const arrayBuffer = await imgFile.arrayBuffer();
@@ -31,25 +54,24 @@ async function imageToPdfPage(imgFile) {
     return await pdfDoc.save();
 }
 
-// Generate the reimbursement PDF
+// Generate PDF
 generatePdfBtn.addEventListener("click", async () => {
     const { jsPDF } = window.jspdf;
     const firstName = document.getElementById("firstName").value;
     const lastName = document.getElementById("lastName").value;
     const submissionDate = document.getElementById("submissionDate").value;
 
-    // --- Step 1: Create main form PDF ---
+    // --- Page 1: Form + Expenses ---
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text("Reimbursement Request", 105, 20, null, null, "center");
-
     doc.setFontSize(12);
     doc.text(`Employee: ${firstName} ${lastName}`, 20, 40);
     doc.text(`Date: ${submissionDate}`, 20, 50);
 
     // Table headers
     const startY = 70;
-    const colX = [20, 60, 130, 160, 190]; // last column can be ignored
+    const colX = [20, 60, 130]; // Date, Description, Amount+Mileage
     doc.setFont(undefined, "bold");
     doc.text("Date", colX[0], startY);
     doc.text("Description", colX[1], startY);
@@ -57,16 +79,15 @@ generatePdfBtn.addEventListener("click", async () => {
     doc.setFont(undefined, "normal");
 
     // Table rows
+    let y = startY + 10;
     let total = 0;
     const rows = document.querySelectorAll(".expenseRow");
-    let y = startY + 10;
     rows.forEach(row => {
         const date = row.querySelector(".expenseDate").value;
         const desc = row.querySelector(".expenseDesc").value;
         const amount = parseFloat(row.querySelector(".expenseAmount").value) || 0;
         const miles = parseFloat(row.querySelector(".expenseMiles").value) || 0;
-        const mileageAmount = miles * 0.7;
-        const combined = amount + mileageAmount;
+        const combined = amount + miles * 0.7;
         total += combined;
 
         doc.text(date, colX[0], y);
@@ -74,17 +95,15 @@ generatePdfBtn.addEventListener("click", async () => {
         doc.text(combined.toFixed(2), colX[2], y);
         y += 10;
     });
-
     doc.setFont(undefined, "bold");
     doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, y + 10);
+    doc.setFont(undefined, "normal");
 
     const mainPdfBytes = doc.output("arraybuffer");
 
-    // --- Step 2: Prepare receipts PDFs ---
-    const receiptFiles = receiptInput.files;
+    // --- Step 2: Convert receipts ---
     let receiptPdfs = [];
-
-    for (let file of receiptFiles) {
+    for (let file of uploadedReceipts) {
         if (file.type === "application/pdf") {
             receiptPdfs.push(await file.arrayBuffer());
         } else if (file.type.startsWith("image/")) {
@@ -93,7 +112,7 @@ generatePdfBtn.addEventListener("click", async () => {
         }
     }
 
-    // --- Step 3: Merge all PDFs using pdf-lib ---
+    // --- Step 3: Merge PDFs with pdf-lib ---
     const finalPdf = await PDFLib.PDFDocument.create();
     const mainPdf = await PDFLib.PDFDocument.load(mainPdfBytes);
     const mainPages = await finalPdf.copyPages(mainPdf, mainPdf.getPageIndices());
@@ -107,7 +126,7 @@ generatePdfBtn.addEventListener("click", async () => {
 
     const finalBytes = await finalPdf.save();
 
-    // Download final PDF
+    // Download
     const blob = new Blob([finalBytes], { type: "application/pdf" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
