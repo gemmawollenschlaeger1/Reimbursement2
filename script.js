@@ -3,10 +3,6 @@ const expensesContainer = document.getElementById("expensesContainer");
 const addExpenseBtn = document.getElementById("addExpenseBtn");
 const generatePdfBtn = document.getElementById("generatePdfBtn");
 const receiptInput = document.getElementById("receiptFiles");
-const uploadReceiptsBtn = document.getElementById("uploadReceiptsBtn");
-const selectedReceiptsList = document.getElementById("selectedReceiptsList");
-
-let uploadedReceipts = [];
 
 // Add a new expense row
 function addExpenseRow() {
@@ -25,115 +21,96 @@ function addExpenseRow() {
 
 addExpenseBtn.addEventListener("click", addExpenseRow);
 
-// Upload receipts
-uploadReceiptsBtn.addEventListener("click", () => {
-    const files = Array.from(receiptInput.files);
-    files.forEach(file => {
-        uploadedReceipts.push(file);
-
-        const li = document.createElement("li");
-        li.textContent = file.name;
-
-        const removeBtn = document.createElement("button");
-        removeBtn.textContent = "Remove";
-        removeBtn.classList.add("removeBtn");
-        removeBtn.addEventListener("click", () => {
-            uploadedReceipts = uploadedReceipts.filter(f => f !== file);
-            li.remove();
-        });
-
-        const uploadedTag = document.createElement("span");
-        uploadedTag.textContent = "Uploaded ✅";
-        uploadedTag.classList.add("uploadedTag");
-
-        li.appendChild(uploadedTag);
-        li.appendChild(removeBtn);
-        selectedReceiptsList.appendChild(li);
-    });
-
-    receiptInput.value = ""; // reset file input
-});
-
-// Add receipts to PDF
-async function addReceiptImages(doc) {
-    for (let i = 0; i < uploadedReceipts.length; i++) {
-        const file = uploadedReceipts[i];
-
-        if (file.type.startsWith("image/")) {
-            const imgData = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = e => reject(e);
-                reader.readAsDataURL(file);
-            });
-
-            doc.addPage();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const margin = 20;
-
-            const img = new Image();
-            img.src = imgData;
-            await new Promise(resolve => { img.onload = resolve; });
-
-            const pdfWidth = pageWidth - margin * 2;
-            const pdfHeight = (img.height * pdfWidth) / img.width;
-
-            doc.addImage(imgData, 'JPEG', margin, margin, pdfWidth, pdfHeight);
-        }
-
-        if (file.type === "application/pdf") {
-            // Optional: append PDF using PDF-Lib
-            const existingPdfBytes = await file.arrayBuffer();
-            const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
-            const pdfBytes = await pdfDoc.save();
-            // Currently cannot merge with jsPDF directly; images will work
-        }
-    }
+// Convert image to PDF page using pdf-lib
+async function imageToPdfPage(imgFile) {
+    const arrayBuffer = await imgFile.arrayBuffer();
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    const img = imgFile.type === "image/png" ? await pdfDoc.embedPng(arrayBuffer) : await pdfDoc.embedJpg(arrayBuffer);
+    const page = pdfDoc.addPage([img.width, img.height]);
+    page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+    return await pdfDoc.save();
 }
 
-// Generate PDF
+// Generate the reimbursement PDF
 generatePdfBtn.addEventListener("click", async () => {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
     const firstName = document.getElementById("firstName").value;
     const lastName = document.getElementById("lastName").value;
-    const date = document.getElementById("submissionDate").value;
+    const submissionDate = document.getElementById("submissionDate").value;
 
+    // --- Step 1: Create main form PDF ---
+    const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text("Reimbursement Request", 105, 20, null, null, "center");
+
     doc.setFontSize(12);
     doc.text(`Employee: ${firstName} ${lastName}`, 20, 40);
-    doc.text(`Date: ${date}`, 20, 50);
+    doc.text(`Date: ${submissionDate}`, 20, 50);
 
-    const rows = document.querySelectorAll(".expenseRow");
+    // Table headers
+    const startY = 70;
+    const colX = [20, 60, 130, 160, 190]; // last column can be ignored
+    doc.setFont(undefined, "bold");
+    doc.text("Date", colX[0], startY);
+    doc.text("Description", colX[1], startY);
+    doc.text("Amount + Mileage ($)", colX[2], startY);
+    doc.setFont(undefined, "normal");
+
+    // Table rows
     let total = 0;
-    const tableData = [];
-
+    const rows = document.querySelectorAll(".expenseRow");
+    let y = startY + 10;
     rows.forEach(row => {
-        const dateVal = row.querySelector(".expenseDate").value;
-        const descVal = row.querySelector(".expenseDesc").value;
-        const amountVal = parseFloat(row.querySelector(".expenseAmount").value) || 0;
-        const milesVal = parseFloat(row.querySelector(".expenseMiles")?.value) || 0;
-        const mileageAmount = milesVal * 0.7;
-        const totalAmount = amountVal + mileageAmount;
-        total += totalAmount;
+        const date = row.querySelector(".expenseDate").value;
+        const desc = row.querySelector(".expenseDesc").value;
+        const amount = parseFloat(row.querySelector(".expenseAmount").value) || 0;
+        const miles = parseFloat(row.querySelector(".expenseMiles").value) || 0;
+        const mileageAmount = miles * 0.7;
+        const combined = amount + mileageAmount;
+        total += combined;
 
-        tableData.push([dateVal, descVal, totalAmount.toFixed(2), milesVal ? milesVal.toFixed(1) : "-"]);
+        doc.text(date, colX[0], y);
+        doc.text(desc, colX[1], y);
+        doc.text(combined.toFixed(2), colX[2], y);
+        y += 10;
     });
 
-    doc.autoTable({
-        startY: 70,
-        head: [['Date', 'Description', 'Amount + Mileage ($)', 'Miles']],
-        body: tableData,
-        styles: { halign: 'left' },
-        headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [236, 240, 241] }
-    });
+    doc.setFont(undefined, "bold");
+    doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, y + 10);
 
-    doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, doc.lastAutoTable.finalY + 10);
+    const mainPdfBytes = doc.output("arraybuffer");
 
-    await addReceiptImages(doc);
+    // --- Step 2: Prepare receipts PDFs ---
+    const receiptFiles = receiptInput.files;
+    let receiptPdfs = [];
 
-    doc.save(`${date}_Reimbursement_${firstName}_${lastName}.pdf`);
+    for (let file of receiptFiles) {
+        if (file.type === "application/pdf") {
+            receiptPdfs.push(await file.arrayBuffer());
+        } else if (file.type.startsWith("image/")) {
+            const imgPdf = await imageToPdfPage(file);
+            receiptPdfs.push(imgPdf);
+        }
+    }
+
+    // --- Step 3: Merge all PDFs using pdf-lib ---
+    const finalPdf = await PDFLib.PDFDocument.create();
+    const mainPdf = await PDFLib.PDFDocument.load(mainPdfBytes);
+    const mainPages = await finalPdf.copyPages(mainPdf, mainPdf.getPageIndices());
+    mainPages.forEach(p => finalPdf.addPage(p));
+
+    for (let rpdf of receiptPdfs) {
+        const receiptDoc = await PDFLib.PDFDocument.load(rpdf);
+        const pages = await finalPdf.copyPages(receiptDoc, receiptDoc.getPageIndices());
+        pages.forEach(p => finalPdf.addPage(p));
+    }
+
+    const finalBytes = await finalPdf.save();
+
+    // Download final PDF
+    const blob = new Blob([finalBytes], { type: "application/pdf" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${submissionDate}_Reimbursement_${firstName}_${lastName}.pdf`;
+    link.click();
 });
