@@ -8,19 +8,20 @@ const receiptList = document.getElementById("receiptList");
 
 let uploadedReceipts = [];
 
-// Add expense row
+// Add a new expense row
 function addExpenseRow() {
-    const tr = document.createElement("tr");
-    tr.classList.add("expenseRow");
-    tr.innerHTML = `
-        <td><input type="date" class="expenseDate" required></td>
-        <td><input type="text" class="expenseDesc" required></td>
-        <td><input type="number" class="expenseAmount" step="0.01" required></td>
-        <td><input type="number" class="expenseMiles" step="0.1"></td>
-        <td><button type="button" class="removeExpenseBtn">Remove</button></td>
+    const div = document.createElement("div");
+    div.classList.add("expenseRow");
+    div.innerHTML = `
+        <label>Expense Date: <input type="date" class="expenseDate" required></label>
+        <label>Description: <input type="text" class="expenseDesc" required></label>
+        <label>Amount ($): <input type="number" class="expenseAmount" step="0.01" required></label>
+        <label>Mileage (if applicable): <input type="number" class="expenseMiles" step="0.1"></label>
+        <button type="button" class="removeExpenseBtn">Remove</button>
+        <hr>
     `;
-    expensesContainer.appendChild(tr);
-    tr.querySelector(".removeExpenseBtn").addEventListener("click", () => tr.remove());
+    expensesContainer.appendChild(div);
+    div.querySelector(".removeExpenseBtn").addEventListener("click", () => div.remove());
 }
 
 addExpenseBtn.addEventListener("click", addExpenseRow);
@@ -69,20 +70,11 @@ generatePdfBtn.addEventListener("click", async () => {
     doc.text(`Employee: ${firstName} ${lastName}`, 20, 40);
     doc.text(`Date: ${submissionDate}`, 20, 50);
 
-    // Table headers
-    const startY = 70;
-    const colX = [20, 60, 130]; // Date, Description, Amount+Mileage
-    doc.setFont(undefined, "bold");
-    doc.text("Date", colX[0], startY);
-    doc.text("Description", colX[1], startY);
-    doc.text("Amount + Mileage ($)", colX[2], startY);
-    doc.setFont(undefined, "normal");
-
-    // Table rows
-    let y = startY + 10;
-    let total = 0;
+    // Expenses list
+    let startY = 70;
     const rows = document.querySelectorAll(".expenseRow");
-    rows.forEach(row => {
+    let total = 0;
+    rows.forEach((row, i) => {
         const date = row.querySelector(".expenseDate").value;
         const desc = row.querySelector(".expenseDesc").value;
         const amount = parseFloat(row.querySelector(".expenseAmount").value) || 0;
@@ -90,18 +82,19 @@ generatePdfBtn.addEventListener("click", async () => {
         const combined = amount + miles * 0.7;
         total += combined;
 
-        doc.text(date, colX[0], y);
-        doc.text(desc, colX[1], y);
-        doc.text(combined.toFixed(2), colX[2], y);
-        y += 10;
+        const y = startY + i * 10;
+        doc.text(date, 20, y);
+        doc.text(desc, 50, y);
+        doc.text(combined.toFixed(2), 120, y);
     });
+
     doc.setFont(undefined, "bold");
-    doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, y + 10);
+    doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, startY + rows.length * 10 + 10);
     doc.setFont(undefined, "normal");
 
     const mainPdfBytes = doc.output("arraybuffer");
 
-    // --- Step 2: Convert receipts ---
+    // --- Receipts ---
     let receiptPdfs = [];
     for (let file of uploadedReceipts) {
         if (file.type === "application/pdf") {
@@ -112,7 +105,7 @@ generatePdfBtn.addEventListener("click", async () => {
         }
     }
 
-    // --- Step 3: Merge PDFs with pdf-lib ---
+    // Merge main PDF + receipts
     const finalPdf = await PDFLib.PDFDocument.create();
     const mainPdf = await PDFLib.PDFDocument.load(mainPdfBytes);
     const mainPages = await finalPdf.copyPages(mainPdf, mainPdf.getPageIndices());
@@ -125,8 +118,6 @@ generatePdfBtn.addEventListener("click", async () => {
     }
 
     const finalBytes = await finalPdf.save();
-
-    // Download
     const blob = new Blob([finalBytes], { type: "application/pdf" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
