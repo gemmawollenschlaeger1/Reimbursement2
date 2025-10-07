@@ -3,10 +3,6 @@ const expensesContainer = document.getElementById("expensesContainer");
 const addExpenseBtn = document.getElementById("addExpenseBtn");
 const generatePdfBtn = document.getElementById("generatePdfBtn");
 const receiptInput = document.getElementById("receiptFiles");
-const uploadReceiptsBtn = document.getElementById("uploadReceiptsBtn");
-const receiptList = document.getElementById("receiptList");
-
-let uploadedReceipts = [];
 
 // Add a new expense row
 function addExpenseRow() {
@@ -26,30 +22,16 @@ function addExpenseRow() {
 
 addExpenseBtn.addEventListener("click", addExpenseRow);
 
-// Upload receipts to list
-uploadReceiptsBtn.addEventListener("click", () => {
-    const files = Array.from(receiptInput.files);
-    files.forEach(file => {
-        uploadedReceipts.push(file);
-        const li = document.createElement("li");
-        li.textContent = file.name + " ";
-        const removeBtn = document.createElement("button");
-        removeBtn.textContent = "Remove";
-        removeBtn.addEventListener("click", () => {
-            uploadedReceipts = uploadedReceipts.filter(f => f !== file);
-            li.remove();
-        });
-        li.appendChild(removeBtn);
-        receiptList.appendChild(li);
-    });
-    receiptInput.value = "";
-});
-
-// Convert image to PDF page using pdf-lib
+// Convert image to PDF page
 async function imageToPdfPage(imgFile) {
     const arrayBuffer = await imgFile.arrayBuffer();
     const pdfDoc = await PDFLib.PDFDocument.create();
-    const img = imgFile.type === "image/png" ? await pdfDoc.embedPng(arrayBuffer) : await pdfDoc.embedJpg(arrayBuffer);
+    let img;
+    if (imgFile.type === "image/png") {
+        img = await pdfDoc.embedPng(arrayBuffer);
+    } else {
+        img = await pdfDoc.embedJpg(arrayBuffer);
+    }
     const page = pdfDoc.addPage([img.width, img.height]);
     page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
     return await pdfDoc.save();
@@ -70,10 +52,10 @@ generatePdfBtn.addEventListener("click", async () => {
     doc.text(`Employee: ${firstName} ${lastName}`, 20, 40);
     doc.text(`Date: ${submissionDate}`, 20, 50);
 
-    // Expenses list
     let startY = 70;
     const rows = document.querySelectorAll(".expenseRow");
     let total = 0;
+
     rows.forEach((row, i) => {
         const date = row.querySelector(".expenseDate").value;
         const desc = row.querySelector(".expenseDesc").value;
@@ -95,8 +77,10 @@ generatePdfBtn.addEventListener("click", async () => {
     const mainPdfBytes = doc.output("arraybuffer");
 
     // --- Receipts ---
-    let receiptPdfs = [];
-    for (let file of uploadedReceipts) {
+    const files = Array.from(receiptInput.files);
+    const receiptPdfs = [];
+
+    for (let file of files) {
         if (file.type === "application/pdf") {
             receiptPdfs.push(await file.arrayBuffer());
         } else if (file.type.startsWith("image/")) {
