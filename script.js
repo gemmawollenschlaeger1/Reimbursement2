@@ -54,7 +54,7 @@ uploadReceiptsBtn.addEventListener("click", () => {
     receiptInput.value = ""; // reset file input
 });
 
-// Add receipts to PDF
+// Add receipts (images and PDF pages) to PDF
 async function addReceiptImages(doc) {
     for (let i = 0; i < uploadedReceipts.length; i++) {
         const file = uploadedReceipts[i];
@@ -82,11 +82,27 @@ async function addReceiptImages(doc) {
         }
 
         if (file.type === "application/pdf") {
-            // Optional: append PDF using PDF-Lib
-            const existingPdfBytes = await file.arrayBuffer();
-            const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
-            const pdfBytes = await pdfDoc.save();
-            // Currently cannot merge with jsPDF directly; images will work
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 2 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({ canvasContext: context, viewport }).promise;
+
+                const imgData = canvas.toDataURL('image/png');
+                doc.addPage();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pdfWidth = pageWidth - 40;
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                doc.addImage(imgData, 'PNG', 20, 20, pdfWidth, pdfHeight);
+            }
         }
     }
 }
@@ -96,9 +112,14 @@ generatePdfBtn.addEventListener("click", async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    const firstName = document.getElementById("firstName").value;
-    const lastName = document.getElementById("lastName").value;
+    const firstName = document.getElementById("firstName").value.trim();
+    const lastName = document.getElementById("lastName").value.trim();
     const date = document.getElementById("submissionDate").value;
+
+    if(!firstName || !lastName || !date){
+        alert("Please fill out all personal information fields.");
+        return;
+    }
 
     doc.setFontSize(16);
     doc.text("Reimbursement Request", 105, 20, null, null, "center");
