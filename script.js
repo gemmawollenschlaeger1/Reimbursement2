@@ -8,6 +8,10 @@ const selectedReceiptsList = document.getElementById("selectedReceiptsList");
 
 let uploadedReceipts = [];
 
+// PDF.js setup
+const pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.100/pdf.worker.min.js';
+
 // Add a new expense row
 function addExpenseRow() {
     const tr = document.createElement("tr");
@@ -116,7 +120,7 @@ generatePdfBtn.addEventListener("click", async () => {
     const lastName = document.getElementById("lastName").value.trim();
     const date = document.getElementById("submissionDate").value;
 
-    if(!firstName || !lastName || !date){
+    if (!firstName || !lastName || !date) {
         alert("Please fill out all personal information fields.");
         return;
     }
