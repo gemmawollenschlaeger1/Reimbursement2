@@ -8,10 +8,6 @@ const selectedReceiptsList = document.getElementById("selectedReceiptsList");
 
 let uploadedReceipts = [];
 
-// PDF.js setup
-const pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.100/pdf.worker.min.js';
-
 // Add a new expense row
 function addExpenseRow() {
     const tr = document.createElement("tr");
@@ -55,14 +51,12 @@ uploadReceiptsBtn.addEventListener("click", () => {
         selectedReceiptsList.appendChild(li);
     });
 
-    receiptInput.value = ""; // reset file input
+    receiptInput.value = "";
 });
 
-// Add receipts (images and PDF pages) to PDF
+// Add receipts to PDF
 async function addReceiptImages(doc) {
-    for (let i = 0; i < uploadedReceipts.length; i++) {
-        const file = uploadedReceipts[i];
-
+    for (let file of uploadedReceipts) {
         if (file.type.startsWith("image/")) {
             const imgData = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -70,42 +64,33 @@ async function addReceiptImages(doc) {
                 reader.onerror = e => reject(e);
                 reader.readAsDataURL(file);
             });
-
             doc.addPage();
             const pageWidth = doc.internal.pageSize.getWidth();
             const margin = 20;
-
             const img = new Image();
             img.src = imgData;
-            await new Promise(resolve => { img.onload = resolve; });
-
+            await new Promise(r => { img.onload = r; });
             const pdfWidth = pageWidth - margin * 2;
             const pdfHeight = (img.height * pdfWidth) / img.width;
-
             doc.addImage(imgData, 'JPEG', margin, margin, pdfWidth, pdfHeight);
-        }
-
-        if (file.type === "application/pdf") {
+        } else if (file.type === "application/pdf") {
             const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
 
             for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                 const page = await pdf.getPage(pageNum);
                 const viewport = page.getViewport({ scale: 2 });
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
-
-                await page.render({ canvasContext: context, viewport }).promise;
-
-                const imgData = canvas.toDataURL('image/png');
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                const imgData = canvas.toDataURL("image/png");
                 doc.addPage();
                 const pageWidth = doc.internal.pageSize.getWidth();
                 const pdfWidth = pageWidth - 40;
                 const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-                doc.addImage(imgData, 'PNG', 20, 20, pdfWidth, pdfHeight);
+                doc.addImage(imgData, "PNG", 20, 20, pdfWidth, pdfHeight);
             }
         }
     }
@@ -134,7 +119,6 @@ generatePdfBtn.addEventListener("click", async () => {
     const rows = document.querySelectorAll(".expenseRow");
     let total = 0;
     const tableData = [];
-
     rows.forEach(row => {
         const dateVal = row.querySelector(".expenseDate").value;
         const descVal = row.querySelector(".expenseDesc").value;
@@ -143,17 +127,16 @@ generatePdfBtn.addEventListener("click", async () => {
         const mileageAmount = milesVal * 0.7;
         const totalAmount = amountVal + mileageAmount;
         total += totalAmount;
-
         tableData.push([dateVal, descVal, totalAmount.toFixed(2), milesVal ? milesVal.toFixed(1) : "-"]);
     });
 
     doc.autoTable({
         startY: 70,
-        head: [['Date', 'Description', 'Amount + Mileage ($)', 'Miles']],
+        head: [["Date", "Description", "Amount + Mileage ($)", "Miles"]],
         body: tableData,
-        styles: { halign: 'left' },
+        styles: { halign: "left" },
         headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [236, 240, 241] }
+        alternateRowStyles: { fillColor: [236, 240, 241] },
     });
 
     doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, doc.lastAutoTable.finalY + 10);
