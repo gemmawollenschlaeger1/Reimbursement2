@@ -1,4 +1,3 @@
-// Elements
 const expensesContainer = document.getElementById("expensesContainer");
 const addExpenseBtn = document.getElementById("addExpenseBtn");
 const generatePdfBtn = document.getElementById("generatePdfBtn");
@@ -22,7 +21,6 @@ function addExpenseRow() {
     expensesContainer.appendChild(tr);
     tr.querySelector(".removeExpenseBtn").addEventListener("click", () => tr.remove());
 }
-
 addExpenseBtn.addEventListener("click", addExpenseRow);
 
 // Upload receipts
@@ -50,19 +48,20 @@ uploadReceiptsBtn.addEventListener("click", () => {
         li.appendChild(removeBtn);
         selectedReceiptsList.appendChild(li);
     });
-
     receiptInput.value = "";
 });
 
-// Convert PNG to PDF-Lib page
-async function addImageAsPage(pdfDoc, imgFile) {
-    const imgBytes = await imgFile.arrayBuffer();
-    const img = imgFile.type === "image/png" ? await pdfDoc.embedPng(imgBytes) : await pdfDoc.embedJpg(imgBytes);
-    const page = pdfDoc.addPage([img.width, img.height]);
-    page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+// Add PNG/JPG as PDF-Lib page
+async function addImagePage(pdfDoc, imgFile) {
+    const bytes = await imgFile.arrayBuffer();
+    const image = imgFile.type === "image/png"
+        ? await pdfDoc.embedPng(bytes)
+        : await pdfDoc.embedJpg(bytes);
+    const page = pdfDoc.addPage([image.width, image.height]);
+    page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
 }
 
-// Generate PDF
+// Generate final PDF
 generatePdfBtn.addEventListener("click", async () => {
     const firstName = document.getElementById("firstName").value.trim();
     const lastName = document.getElementById("lastName").value.trim();
@@ -73,69 +72,56 @@ generatePdfBtn.addEventListener("click", async () => {
         return;
     }
 
-    // Step 1: Generate the reimbursement PDF using jsPDF
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4 size
+    const { width, height } = page.getSize();
 
-    doc.setFontSize(16);
-    doc.text("Reimbursement Request", 105, 20, null, null, "center");
-    doc.setFontSize(12);
-    doc.text(`Employee: ${firstName} ${lastName}`, 20, 40);
-    doc.text(`Date: ${date}`, 20, 50);
+    // Draw header
+    page.drawText("Reimbursement Request", { x: 200, y: height - 50, size: 18 });
+    page.drawText(`Employee: ${firstName} ${lastName}`, { x: 50, y: height - 80, size: 12 });
+    page.drawText(`Date: ${date}`, { x: 50, y: height - 100, size: 12 });
 
-    const rows = document.querySelectorAll(".expenseRow");
+    // Draw expenses table
+    let tableY = height - 140;
+    const rows = Array.from(document.querySelectorAll(".expenseRow"));
     let total = 0;
-    const tableData = [];
-    rows.forEach(row => {
+    page.drawText("Date        Description        Amount + Mileage ($)    Miles", { x: 50, y: tableY, size: 10 });
+    tableY -= 20;
+    for (const row of rows) {
         const dateVal = row.querySelector(".expenseDate").value;
         const descVal = row.querySelector(".expenseDesc").value;
         const amountVal = parseFloat(row.querySelector(".expenseAmount").value) || 0;
         const milesVal = parseFloat(row.querySelector(".expenseMiles")?.value) || 0;
-        const mileageAmount = milesVal * 0.7;
-        const totalAmount = amountVal + mileageAmount;
+        const totalAmount = amountVal + milesVal * 0.7;
         total += totalAmount;
-        tableData.push([dateVal, descVal, totalAmount.toFixed(2), milesVal ? milesVal.toFixed(1) : "-"]);
-    });
 
-    doc.autoTable({
-        startY: 70,
-        head: [["Date", "Description", "Amount + Mileage ($)", "Miles"]],
-        body: tableData,
-        styles: { halign: "left" },
-        headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [236, 240, 241] },
-    });
+        page.drawText(`${dateVal}    ${descVal}    ${totalAmount.toFixed(2)}    ${milesVal || "-"}`, { x: 50, y: tableY, size: 10 });
+        tableY -= 20;
+        if (tableY < 50) { // add new page if table too long
+            tableY = height - 50;
+            pdfDoc.addPage();
+        }
+    }
+    page.drawText(`Total Reimbursement: $${total.toFixed(2)}`, { x: 50, y: tableY - 10, size: 12 });
 
-    doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, doc.lastAutoTable.finalY + 10);
-
-    // Step 2: Merge with PDF-Lib
-    const pdfBytes = doc.output("arraybuffer");
-    const finalPdf = await PDFLib.PDFDocument.create();
-
-    // Add the jsPDF content
-    const jsPdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
-    const pages = await finalPdf.copyPages(jsPdfDoc, jsPdfDoc.getPageIndices());
-    pages.forEach(p => finalPdf.addPage(p));
-
-    // Add uploaded receipts
+    // Add receipts
     for (const file of uploadedReceipts) {
         if (file.type === "application/pdf") {
-            const arrayBuffer = await file.arrayBuffer();
-            const receiptPdf = await PDFLib.PDFDocument.load(arrayBuffer);
-            const receiptPages = await finalPdf.copyPages(receiptPdf, receiptPdf.getPageIndices());
-            receiptPages.forEach(p => finalPdf.addPage(p));
+            const bytes = await file.arrayBuffer();
+            const receiptPdf = await PDFLib.PDFDocument.load(bytes);
+            const pages = await pdfDoc.copyPages(receiptPdf, receiptPdf.getPageIndices());
+            pages.forEach(p => pdfDoc.addPage(p));
         } else if (file.type.startsWith("image/")) {
-            await addImageAsPage(finalPdf, file);
+            await addImagePage(pdfDoc, file);
         }
     }
 
-    // Save final PDF
-    const finalBytes = await finalPdf.save();
-    const blob = new Blob([finalBytes], { type: "application/pdf" });
+    // Save
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `${date}_Reimbursement_${firstName}_${lastName}.pdf`;
     a.click();
 });
-
