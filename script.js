@@ -54,53 +54,16 @@ uploadReceiptsBtn.addEventListener("click", () => {
     receiptInput.value = "";
 });
 
-// Add receipts to PDF
-async function addReceiptImages(doc) {
-    for (let file of uploadedReceipts) {
-        if (file.type.startsWith("image/")) {
-            const imgData = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = e => reject(e);
-                reader.readAsDataURL(file);
-            });
-            doc.addPage();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const margin = 20;
-            const img = new Image();
-            img.src = imgData;
-            await new Promise(r => { img.onload = r; });
-            const pdfWidth = pageWidth - margin * 2;
-            const pdfHeight = (img.height * pdfWidth) / img.width;
-            doc.addImage(imgData, 'JPEG', margin, margin, pdfWidth, pdfHeight);
-        } else if (file.type === "application/pdf") {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-
-            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                const page = await pdf.getPage(pageNum);
-                const viewport = page.getViewport({ scale: 2 });
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
-                await page.render({ canvasContext: ctx, viewport }).promise;
-                const imgData = canvas.toDataURL("image/png");
-                doc.addPage();
-                const pageWidth = doc.internal.pageSize.getWidth();
-                const pdfWidth = pageWidth - 40;
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                doc.addImage(imgData, "PNG", 20, 20, pdfWidth, pdfHeight);
-            }
-        }
-    }
+// Convert PNG to PDF-Lib page
+async function addImageAsPage(pdfDoc, imgFile) {
+    const imgBytes = await imgFile.arrayBuffer();
+    const img = imgFile.type === "image/png" ? await pdfDoc.embedPng(imgBytes) : await pdfDoc.embedJpg(imgBytes);
+    const page = pdfDoc.addPage([img.width, img.height]);
+    page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
 }
 
 // Generate PDF
 generatePdfBtn.addEventListener("click", async () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
     const firstName = document.getElementById("firstName").value.trim();
     const lastName = document.getElementById("lastName").value.trim();
     const date = document.getElementById("submissionDate").value;
@@ -109,6 +72,10 @@ generatePdfBtn.addEventListener("click", async () => {
         alert("Please fill out all personal information fields.");
         return;
     }
+
+    // Step 1: Generate the reimbursement PDF using jsPDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
     doc.setFontSize(16);
     doc.text("Reimbursement Request", 105, 20, null, null, "center");
@@ -141,7 +108,34 @@ generatePdfBtn.addEventListener("click", async () => {
 
     doc.text(`Total Reimbursement: $${total.toFixed(2)}`, 20, doc.lastAutoTable.finalY + 10);
 
-    await addReceiptImages(doc);
+    // Step 2: Merge with PDF-Lib
+    const pdfBytes = doc.output("arraybuffer");
+    const finalPdf = await PDFLib.PDFDocument.create();
 
-    doc.save(`${date}_Reimbursement_${firstName}_${lastName}.pdf`);
+    // Add the jsPDF content
+    const jsPdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+    const pages = await finalPdf.copyPages(jsPdfDoc, jsPdfDoc.getPageIndices());
+    pages.forEach(p => finalPdf.addPage(p));
+
+    // Add uploaded receipts
+    for (const file of uploadedReceipts) {
+        if (file.type === "application/pdf") {
+            const arrayBuffer = await file.arrayBuffer();
+            const receiptPdf = await PDFLib.PDFDocument.load(arrayBuffer);
+            const receiptPages = await finalPdf.copyPages(receiptPdf, receiptPdf.getPageIndices());
+            receiptPages.forEach(p => finalPdf.addPage(p));
+        } else if (file.type.startsWith("image/")) {
+            await addImageAsPage(finalPdf, file);
+        }
+    }
+
+    // Save final PDF
+    const finalBytes = await finalPdf.save();
+    const blob = new Blob([finalBytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${date}_Reimbursement_${firstName}_${lastName}.pdf`;
+    a.click();
 });
+
