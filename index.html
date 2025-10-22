@@ -1,124 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reimbursement Form</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f9f9f9;
-            margin: 20px auto;
-            max-width: 900px;
-            padding: 20px;
-            color: #333;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reimbursement Form</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f9f9f9;
+        margin: 20px auto;
+        max-width: 900px;
+        padding: 20px;
+        color: #333;
+    }
+    h1, h2 { color: #2c3e50; }
+    label { display: flex; flex-direction: column; margin-bottom: 15px; font-weight: 500; width: 100%; }
+    input[type="text"], input[type="number"], input[type="date"], input[type="file"] {
+        padding: 10px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        width: 100%;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    button {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 0.2s;
+        width: 100%;
+        max-width: 250px;
+    }
+    button:hover { opacity: 0.9; }
+    #addExpenseBtn { background-color: #3498db; color: white; margin-bottom: 20px; }
+    .removeExpenseBtn, .removeBtn { background-color: #e74c3c; color: white; }
+    #uploadReceiptsBtn { background-color: #27ae60; color: white; margin-left: 0; margin-top: 10px; }
+    #generatePdfBtn { background-color: #8e44ad; color: white; margin-top: 30px; width: 100%; }
 
-        h1, h2 { color: #2c3e50; }
-        label { display: flex; flex-direction: column; margin-bottom: 15px; font-weight: 500; width: 100%; }
-        input[type="text"], input[type="number"], input[type="date"], input[type="file"] {
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            width: 100%;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    th, td { padding: 12px 8px; text-align: left; font-size: 14px; }
+    th { background-color: #2c3e50; color: #fff; font-weight: 600; }
+    tbody tr:nth-child(even) { background-color: #ecf0f1; }
+    tbody tr:hover { background-color: #d6eaf8; }
 
-        button {
-            padding: 10px 18px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-            max-width: 250px;
-        }
+    .table-container { overflow-x: auto; }
+    #selectedReceiptsList { padding-left: 0; list-style: none; margin-top: 10px; }
+    #selectedReceiptsList li {
+        margin-bottom: 8px;
+        padding: 8px 10px;
+        background-color: #fff;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .uploadedTag { color: #27ae60; font-weight: bold; margin-left: 10px; }
 
-        button:hover { opacity: 0.9; }
-        #addExpenseBtn { background-color: #3498db; color: white; margin-bottom: 20px; }
-        .removeExpenseBtn, .removeBtn { background-color: #e74c3c; color: white; }
-        #uploadReceiptsBtn { background-color: #27ae60; color: white; margin-left: 0; margin-top: 10px; }
-        #generatePdfBtn { background-color: #8e44ad; color: white; margin-top: 30px; width: 100%; }
-
-        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        th, td { padding: 12px 8px; text-align: left; font-size: 14px; }
-        th { background-color: #2c3e50; color: #fff; font-weight: 600; }
-        tbody tr:nth-child(even) { background-color: #ecf0f1; }
-        tbody tr:hover { background-color: #d6eaf8; }
-
-        .table-container { overflow-x: auto; }
-        #selectedReceiptsList { padding-left: 0; list-style: none; margin-top: 10px; }
-        #selectedReceiptsList li {
-            margin-bottom: 8px;
-            padding: 8px 10px;
-            background-color: #fff;
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .uploadedTag { color: #27ae60; font-weight: bold; margin-left: 10px; }
-
-        @media (max-width: 600px) {
-            body { margin: 10px; padding: 10px; }
-            h1 { font-size: 20px; text-align: center; }
-            label { font-size: 14px; }
-            th, td { font-size: 12px; padding: 8px 5px; }
-            button { max-width: 100%; }
-        }
-    </style>
+    @media (max-width: 600px) {
+        body { margin: 10px; padding: 10px; }
+        h1 { font-size: 20px; text-align: center; }
+        label { font-size: 14px; }
+        th, td { font-size: 12px; padding: 8px 5px; }
+        button { max-width: 100%; }
+    }
+</style>
 </head>
 <body>
 
-    <h1>Reimbursement Request</h1>
+<h1>Reimbursement Request</h1>
 
-    <label>First Name:
-        <input type="text" id="firstName" placeholder="Enter first name">
-    </label>
-    <label>Last Name:
-        <input type="text" id="lastName" placeholder="Enter last name">
-    </label>
-    <label>Date:
-        <input type="date" id="submissionDate">
-    </label>
+<label>First Name:
+    <input type="text" id="firstName" placeholder="Enter first name">
+</label>
+<label>Last Name:
+    <input type="text" id="lastName" placeholder="Enter last name">
+</label>
+<label>Date:
+    <input type="date" id="submissionDate">
+</label>
 
-    <h2>Expenses</h2>
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Amount + Mileage ($)</th>
-                    <th>Miles (optional)</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="expensesContainer"></tbody>
-        </table>
-    </div>
-    <button type="button" id="addExpenseBtn">Add Expense</button>
+<h2>Expenses</h2>
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Amount + Mileage ($)</th>
+                <th>Miles (optional)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="expensesContainer"></tbody>
+    </table>
+</div>
+<button type="button" id="addExpenseBtn">Add Expense</button>
 
-    <h2>Receipts</h2>
-    <input type="file" id="receiptFiles" accept="image/*,.pdf" multiple>
-    <button type="button" id="uploadReceiptsBtn">Upload Receipts</button>
-    <ul id="selectedReceiptsList"></ul>
+<h2>Receipts</h2>
+<input type="file" id="receiptFiles" accept="image/*,.pdf" multiple>
+<button type="button" id="uploadReceiptsBtn">Upload Receipts</button>
+<ul id="selectedReceiptsList"></ul>
 
-    <button type="button" id="generatePdfBtn">Generate PDF</button>
+<button type="button" id="generatePdfBtn">Generate PDF</button>
 
-    <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.100/pdf.min.js"></script>
-    <script>
-        // Set PDF.js worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.100/pdf.worker.min.js";
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script src="script.js"></script>
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.22.0/pdf-lib.min.js"></script>
+<script src="script.js"></script>
 
 </body>
 </html>
+
